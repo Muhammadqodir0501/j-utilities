@@ -1,11 +1,7 @@
 package com.example.jutilities.entity;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.*;
-
-import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "users")
@@ -14,8 +10,9 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class User extends BaseEntity{
-    @Column(nullable = false)
+public class User extends BaseEntity {
+
+    @Column(unique = true, nullable = false)
     private String fullName;
 
     @Column(nullable = false, unique = true)

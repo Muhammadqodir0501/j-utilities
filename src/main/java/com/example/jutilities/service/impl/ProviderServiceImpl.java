@@ -1,6 +1,7 @@
 package com.example.jutilities.service.impl;
 
-import com.example.jutilities.dto.request.ProviderDto;
+import com.example.jutilities.dto.request.ProviderCreateRequest;
+import com.example.jutilities.dto.response.ProviderResponse;
 import com.example.jutilities.entity.Provider;
 import com.example.jutilities.exception.ConflictException;
 import com.example.jutilities.exception.NotFoundException;
@@ -10,7 +11,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -20,38 +20,43 @@ public class ProviderServiceImpl implements ProviderService {
     private final ProviderRepository providerRepository;
 
     @Override
-    public Provider createProvider(ProviderDto providerDto) {
-
-        Optional<Provider> existProvider = providerRepository.findByName(providerDto.getName());
-        if(existProvider.isPresent()) {
+    public ProviderResponse createProvider(ProviderCreateRequest request) {
+        if (providerRepository.findByName(request.getName()).isPresent()) {
             throw new ConflictException("Provider already exists");
         }
 
         Provider provider = Provider.builder()
-                .name(providerDto.getName())
+                .name(request.getName())
                 .active(true)
                 .build();
 
-        return providerRepository.save(provider);
+        providerRepository.save(provider);
+        return mapToResponse(provider);
     }
 
     @Override
-    public Provider updateActivation(UUID providerId){
-        Optional<Provider> existProvider = providerRepository.findById(providerId);
-        if(existProvider.isPresent()) {
-            if(existProvider.get().isActive()) {
-                existProvider.get().setActive(false);
-                providerRepository.save(existProvider.get());
-            }else {
-                existProvider.get().setActive(true);
-                providerRepository.save(existProvider.get());
-            }
-        }
-        throw new NotFoundException("Provider not found");
+    public ProviderResponse switchStatus(UUID providerId) {
+        Provider provider = providerRepository.findById(providerId)
+                .orElseThrow(() -> new NotFoundException("Provider not found"));
+
+        provider.setActive(!provider.isActive());
+
+        providerRepository.save(provider);
+        return mapToResponse(provider);
     }
 
     @Override
-    public List<Provider> getAllProviders(){
-        return providerRepository.findAll();
+    public List<ProviderResponse> getAllProviders() {
+        return providerRepository.findAll().stream()
+                .map(this::mapToResponse)
+                .toList();
+    }
+
+    private ProviderResponse mapToResponse(Provider provider) {
+        return ProviderResponse.builder()
+                .id(provider.getId())
+                .name(provider.getName())
+                .active(provider.isActive())
+                .build();
     }
 }

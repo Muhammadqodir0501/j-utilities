@@ -1,9 +1,10 @@
 package com.example.jutilities.controller;
 
-import com.example.jutilities.dto.request.ProviderDto;
-import com.example.jutilities.entity.Provider;
+import com.example.jutilities.dto.request.ProviderCreateRequest;
+import com.example.jutilities.dto.response.ProviderResponse;
 import com.example.jutilities.exception.ApiResponse;
 import com.example.jutilities.service.abstraction.ProviderService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -13,28 +14,26 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/provider")
+@RequestMapping("/api/providers")
 @RequiredArgsConstructor
 public class ProviderController {
 
     private final ProviderService providerService;
 
     @PostMapping
-    public ResponseEntity<ApiResponse<Provider>> createProvider(@RequestBody ProviderDto providerDto) {
-        Provider provider = providerService.createProvider(providerDto);
-        return ResponseEntity.status(HttpStatus.CREATED).body(new ApiResponse<>(provider));
+    public ResponseEntity<ApiResponse<ProviderResponse>> createProvider(@RequestBody @Valid ProviderCreateRequest request) {
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(new ApiResponse<>(providerService.createProvider(request)));
     }
 
-    @PutMapping("/{providerId}")
-    public ResponseEntity<ApiResponse<Provider>> updateProvider(@PathVariable UUID providerId) {
-        Provider provider = providerService.updateActivation(providerId);
-        return ResponseEntity.status(HttpStatus.OK).body(new ApiResponse<>(provider));
+    @PatchMapping("/{id}/status")
+    public ResponseEntity<ApiResponse<ProviderResponse>> switchStatus(@PathVariable UUID id) {
+        return ResponseEntity.ok(new ApiResponse<>(providerService.switchStatus(id)));
     }
 
     @GetMapping
-    public ResponseEntity<ApiResponse<List<Provider>>> getAllProviders() {
-        List<Provider> providers = providerService.getAllProviders();
-        return ResponseEntity.status(HttpStatus.OK).body(new ApiResponse<>(providers));
+    public ResponseEntity<ApiResponse<List<ProviderResponse>>> getAllProviders() {
+        return ResponseEntity.ok(new ApiResponse<>(providerService.getAllProviders()));
     }
-
 }

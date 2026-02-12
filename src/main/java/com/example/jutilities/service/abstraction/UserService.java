@@ -1,10 +1,11 @@
 package com.example.jutilities.service.abstraction;
 
-import com.example.jutilities.dto.request.UserDto;
+import com.example.jutilities.dto.request.UserRegisterRequest;
+import com.example.jutilities.dto.response.UserResponse;
 import com.example.jutilities.entity.User;
 
 public interface UserService {
-    User registerUser(UserDto userDto);
+    UserResponse registerUser(UserRegisterRequest userDto);
 
-    User getUserByPassportNumber(String passportNumber);
+    UserResponse getUserByPassportNumber(String passportNumber);
 }

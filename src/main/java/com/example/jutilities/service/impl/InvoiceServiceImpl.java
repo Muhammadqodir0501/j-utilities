@@ -1,6 +1,8 @@
 package com.example.jutilities.service.impl;
 
-import com.example.jutilities.dto.request.InvoiceDto;
+import com.example.jutilities.dto.request.InvoiceCreateRequest;
+import com.example.jutilities.dto.request.InvoicePayRequest;
+import com.example.jutilities.dto.response.InvoiceResponse;
 import com.example.jutilities.entity.Invoice;
 import com.example.jutilities.entity.Provider;
 import com.example.jutilities.entity.User;
@@ -12,6 +14,7 @@ import com.example.jutilities.repository.UserRepository;
 import com.example.jutilities.service.abstraction.InvoiceService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -25,69 +28,76 @@ public class InvoiceServiceImpl implements InvoiceService {
     private final ProviderRepository providerRepository;
 
     @Override
-    public Invoice createInvoice(InvoiceDto invoiceDto) {
-        Optional<User> user = userRepository.findById(invoiceDto.getUserId());
-        if(user.isEmpty()) {
-            throw new NotFoundException("User not found");
+    @Transactional
+    public InvoiceResponse createInvoice(InvoiceCreateRequest request) {
+        Optional<Invoice> existInvoice = invoiceRepository.findByAccountNumber(request.getAccountNumber());
+        if(existInvoice.isPresent()) {
+            throw new BadRequestException("Invoice with this account number already exists");
         }
 
-        Optional<Provider> provider = providerRepository.findByName(invoiceDto.getProviderName());
-        if(provider.isEmpty()) {
-            throw new NotFoundException("Provider not found");
-        }
+
+        User user = userRepository.findById(request.getUserId())
+                .orElseThrow(() -> new NotFoundException("User not found"));
+
+        Provider provider = providerRepository.findById(request.getProviderId())
+                .orElseThrow(() -> new NotFoundException("Provider not found"));
 
         Invoice invoice = Invoice.builder()
-                .accountNumber(invoiceDto.getAccountNumber())
-                .user(user.get())
-                .amount(invoiceDto.getAmount())
+                .accountNumber(request.getAccountNumber())
+                .user(user)
+                .provider(provider)
+                .amount(request.getAmount())
                 .isPayed(false)
                 .build();
-        return invoiceRepository.save(invoice);
+
+        invoiceRepository.save(invoice);
+        return mapToResponse(invoice);
     }
 
     @Override
-    public Invoice payedInvoice(InvoiceDto invoiceDto) {
-        Optional<User> user = userRepository.findById(invoiceDto.getUserId());
-        if(user.isEmpty()) {
-            throw new NotFoundException("User not found");
-        }
-
-        Optional<Invoice> invoice = invoiceRepository.findByAccountNumber(invoiceDto.getAccountNumber());
-        if(invoice.isEmpty()) {
-            throw new NotFoundException("Invoice not found");
-        }
-
-        long remainder = invoice.get().getAmount() - invoiceDto.getAmount();
-
-        if(remainder < 0){
-            throw new BadRequestException("Payed more than requested amount");
-        } else if (remainder > 0) {
-            invoice.get().setAmount(remainder);
-            invoice.get().setPayed(false);
-            invoiceRepository.save(invoice.get());
-        }else{
-            invoice.get().setPayed(true);
-            invoiceRepository.save(invoice.get());
-        }
-        return invoice.get();
-    }
-
-    @Override
-    public Invoice getInvoice(String accountNumber) {
-        return invoiceRepository.findByAccountNumber(accountNumber)
+    @Transactional
+    public InvoiceResponse payInvoice(InvoicePayRequest request) {
+        Invoice invoice = invoiceRepository.findByAccountNumber(request.getAccountNumber())
                 .orElseThrow(() -> new NotFoundException("Invoice not found"));
+
+        if (invoice.isPayed()) {
+            throw new BadRequestException("Invoice is already payed");
+        }
+
+        long newAmount = invoice.getAmount() - request.getAmount();
+
+        if (newAmount < 0) {
+            throw new BadRequestException("Payment amount exceeds debt. Current debt: " + invoice.getAmount());
+        }
+
+        invoice.setAmount(newAmount);
+        if (newAmount == 0) {
+            invoice.setPayed(true);
+        }
+
+        invoiceRepository.save(invoice);
+        return mapToResponse(invoice);
     }
 
     @Override
-    public List<Invoice> getUserInvoices(String passportNumber) {
-        Optional<User> user = userRepository.findByPassportNumber(passportNumber);
-        if(user.isEmpty()) {
-            throw new NotFoundException("User not found");
+    public List<InvoiceResponse> getUserInvoices(String passportNumber) {
+        if (userRepository.findByPassportNumber(passportNumber).isEmpty()) {
+            throw new NotFoundException("User with passport " + passportNumber + " not found");
         }
 
-        return invoiceRepository.findAll().stream()
-                .filter(invoice -> invoice.getUser().getPassportNumber()
-                        .equals(passportNumber))
+        return invoiceRepository.findAllByUserPassport(passportNumber).stream()
+                .map(this::mapToResponse)
                 .toList();
+    }
+
+    private InvoiceResponse mapToResponse(Invoice invoice) {
+        return InvoiceResponse.builder()
+                .id(invoice.getId())
+                .accountNumber(invoice.getAccountNumber())
+                .amount(invoice.getAmount())
+                .isPayed(invoice.isPayed())
+                .userFullName(invoice.getUser().getFullName())
+                .providerName(invoice.getProvider().getName())
+                .build();
     }
 }

@@ -3,9 +3,6 @@ package com.example.jutilities.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.time.LocalDateTime;
-import java.util.UUID;
-
 @Entity
 @Table(name = "invoices")
 @Getter
@@ -13,16 +10,16 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Invoice extends BaseEntity{
+public class Invoice extends BaseEntity {
 
     @Column(nullable = false, unique = true)
     private String accountNumber;
 
-    @ManyToOne(optional = false)
+    @ManyToOne(optional = false, fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
     private User user;
 
-    @ManyToOne(optional = false)
+    @ManyToOne(optional = false, fetch = FetchType.LAZY)
     @JoinColumn(name = "provider_id")
     private Provider provider;
 

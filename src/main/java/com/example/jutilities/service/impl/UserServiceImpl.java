@@ -1,6 +1,7 @@
 package com.example.jutilities.service.impl;
 
-import com.example.jutilities.dto.request.UserDto;
+import com.example.jutilities.dto.request.UserRegisterRequest;
+import com.example.jutilities.dto.response.UserResponse;
 import com.example.jutilities.entity.User;
 import com.example.jutilities.exception.ConflictException;
 import com.example.jutilities.exception.NotFoundException;
@@ -9,8 +10,6 @@ import com.example.jutilities.service.abstraction.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.util.Optional;
-
 @Service
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
@@ -18,27 +17,32 @@ public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
 
     @Override
-    public User registerUser(UserDto userDto) {
-
-        Optional<User> existUser = userRepository.findByPassportNumber(userDto.getPassportNumber());
-        if(existUser.isPresent()) {
+    public UserResponse registerUser(UserRegisterRequest request) {
+        if (userRepository.findByPassportNumber(request.getPassportNumber()).isPresent()) {
             throw new ConflictException("User already exists");
         }
 
         User user = User.builder()
-                .fullName(userDto.getFullName())
-                .passportNumber(userDto.getPassportNumber())
+                .fullName(request.getFullName())
+                .passportNumber(request.getPassportNumber())
                 .build();
 
-        return userRepository.save(user);
+        userRepository.save(user);
+        return mapToResponse(user);
     }
 
     @Override
-    public User getUserByPassportNumber(String passportNumber) {
-        Optional<User> user = userRepository.findByPassportNumber(passportNumber);
-        if(user.isEmpty()) {
-            throw new NotFoundException("User not found");
-        }
-        return user.get();
+    public UserResponse getUserByPassportNumber(String passportNumber) {
+        User user = userRepository.findByPassportNumber(passportNumber)
+                .orElseThrow(() -> new NotFoundException("User not found"));
+        return mapToResponse(user);
+    }
+
+    private UserResponse mapToResponse(User user) {
+        return UserResponse.builder()
+                .id(user.getId())
+                .fullName(user.getFullName())
+                .passportNumber(user.getPassportNumber())
+                .build();
     }
 }

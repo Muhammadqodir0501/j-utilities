@@ -1,9 +1,11 @@
 package com.example.jutilities.controller;
 
-import com.example.jutilities.dto.request.InvoiceDto;
-import com.example.jutilities.entity.Invoice;
+import com.example.jutilities.dto.request.InvoiceCreateRequest;
+import com.example.jutilities.dto.request.InvoicePayRequest;
+import com.example.jutilities.dto.response.InvoiceResponse;
 import com.example.jutilities.exception.ApiResponse;
 import com.example.jutilities.service.abstraction.InvoiceService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -12,33 +14,26 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/invoice")
+@RequestMapping("/api/invoices")
 @RequiredArgsConstructor
 public class InvoiceController {
 
     private final InvoiceService invoiceService;
 
     @PostMapping
-    public ResponseEntity<ApiResponse<Invoice>> createInvoice(@RequestBody InvoiceDto invoiceDto){
-        Invoice invoice = invoiceService.createInvoice(invoiceDto);
-        return ResponseEntity.status(HttpStatus.CREATED).body(new ApiResponse<>(invoice));
+    public ResponseEntity<ApiResponse<InvoiceResponse>> createInvoice(@RequestBody @Valid InvoiceCreateRequest request) {
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(new ApiResponse<>(invoiceService.createInvoice(request)));
     }
 
-    @PutMapping
-    public ResponseEntity<ApiResponse<Invoice>> payedInvoice(@RequestBody InvoiceDto invoiceDto){
-        Invoice invoice = invoiceService.payedInvoice(invoiceDto);
-        return ResponseEntity.status(HttpStatus.OK).body(new ApiResponse<>(invoice));
+    @PostMapping("/pay")
+    public ResponseEntity<ApiResponse<InvoiceResponse>> payInvoice(@RequestBody @Valid InvoicePayRequest request) {
+        return ResponseEntity.ok(new ApiResponse<>(invoiceService.payInvoice(request)));
     }
 
-    @GetMapping("/{passportNumber}")
-    public ResponseEntity<ApiResponse<List<Invoice>>> getUserInvoices(@PathVariable String passportNumber){
-        List<Invoice> invoices = invoiceService.getUserInvoices(passportNumber);
-        return ResponseEntity.status(HttpStatus.OK).body(new ApiResponse<>(invoices));
-    }
-
-    @GetMapping("/get/{accountNumber}")
-    public ResponseEntity<ApiResponse<Invoice>> getInvoice(@PathVariable String accountNumber){
-        Invoice invoice = invoiceService.getInvoice(accountNumber);
-        return ResponseEntity.status(HttpStatus.OK).body(new ApiResponse<>(invoice));
+    @GetMapping("/user/{passportNumber}")
+    public ResponseEntity<ApiResponse<List<InvoiceResponse>>> getUserInvoices(@PathVariable String passportNumber) {
+        return ResponseEntity.ok(new ApiResponse<>(invoiceService.getUserInvoices(passportNumber)));
     }
 }

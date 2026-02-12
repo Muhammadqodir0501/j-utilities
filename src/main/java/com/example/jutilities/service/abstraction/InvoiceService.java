@@ -1,16 +1,16 @@
 package com.example.jutilities.service.abstraction;
 
-import com.example.jutilities.dto.request.InvoiceDto;
-import com.example.jutilities.entity.Invoice;
+import com.example.jutilities.dto.request.InvoiceCreateRequest;
+import com.example.jutilities.dto.request.InvoicePayRequest;
+import com.example.jutilities.dto.response.InvoiceResponse;
 
 import java.util.List;
 
 public interface InvoiceService {
-    Invoice createInvoice(InvoiceDto invoiceDto);
 
-    Invoice payedInvoice(InvoiceDto invoiceDto);
+    InvoiceResponse createInvoice(InvoiceCreateRequest request);
 
-    Invoice getInvoice(String accountNumber);
+    InvoiceResponse payInvoice(InvoicePayRequest request);
 
-    List<Invoice> getUserInvoices(String passportNumber);
+    List<InvoiceResponse> getUserInvoices(String passportNumber);
 }
